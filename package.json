@@ -1,0 +1,50 @@
+{
+  "name": "@binaryme/open-zone",
+  "version": "0.1.0",
+  "description": "Eyezon EnvisaLink bridge",
+  "main": "lib/index.js",
+  "bin": "lib/cli.js",
+  "types": "lib/index.d.ts",
+  "files": [
+    "lib/**/*"
+  ],
+  "scripts": {
+    "test": "jest --config jestconfig.json",
+    "build": "tsc",
+    "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
+    "lint": "tslint -p tsconfig.json",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm test && npm run lint",
+    "preversion": "npm run lint",
+    "version": "npm run format && git add -A src",
+    "postversion": "git push && git push --tags"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gwest7/open-zone.git"
+  },
+  "keywords": [
+    "EnvisaLink",
+    "DCS",
+    "Honeywell"
+  ],
+  "author": "gary@binaryme.co.za",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/gwest7/open-zone/issues"
+  },
+  "homepage": "https://github.com/gwest7/open-zone#readme",
+  "devDependencies": {
+    "@types/jest": "^27.0.1",
+    "@types/yargs": "^16.0.4",
+    "jest": "^27.0.6",
+    "prettier": "^2.3.2",
+    "ts-jest": "^27.0.5",
+    "tslint": "^6.1.3",
+    "tslint-config-prettier": "^1.18.0",
+    "typescript": "^4.3.5"
+  },
+  "dependencies": {
+    "yargs": "^16.2.0"
+  }
+}
