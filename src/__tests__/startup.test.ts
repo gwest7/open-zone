@@ -1,4 +1,4 @@
 import { ping } from '../index';
-// test('test name', () => {
-//   expect(ping('localhost')).toBe(true);
-// });
+test('Invalid host halts ping', () => {
+  expect(ping('')).toBe(null);
+});

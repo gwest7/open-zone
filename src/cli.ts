@@ -17,7 +17,7 @@ const thread = ping(argv.h as string)
 
 async function shutdown() {
   try {
-    thread.kill();
+    thread?.kill();
   } catch (er) {
     console.error(er);
     process.exitCode = 1;
