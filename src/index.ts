@@ -10,7 +10,7 @@ export function ping(host:string) {
       console.error(`exec error: ${error}`);
       return;
     }
-    console.log(`stdout: ${stdout}`);
+    console.info(`stdout: ${stdout}`);
     console.error(`stderr: ${stderr}`);
   });
 }
