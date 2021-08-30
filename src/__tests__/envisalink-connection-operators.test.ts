@@ -3,7 +3,7 @@ import {
   repeatOnComplete,
   retryOnError,
   cleanStream,
-} from '..';
+} from '../envisalink';
 
 test('Retry on error pipe', done => {
   let failedFirst = false;

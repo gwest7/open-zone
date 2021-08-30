@@ -2,7 +2,7 @@
 
 import { map, Subject, Subscription } from 'rxjs';
 import * as yargs from 'yargs';
-import { ApplicationCommand } from './constants';
+import { ApplicationCommand, TPICommand } from './constants';
 
 const argv = yargs(process.argv.slice(2))
 .usage('Usage: $0 <command> [options]')
@@ -13,21 +13,24 @@ const argv = yargs(process.argv.slice(2))
   p: 'EnvisaLink port number',
   s: 'EnvisaLink login password',
   c: 'Alarm system pin code',
-  m: 'MQTT host'
+  m: 'MQTT host',
+  t: 'MQTT topic',
 })
 .alias({
   h: 'host',
   p: 'post',
   s: 'pass',
   c: 'code',
-  m: 'mqtthost'
+  m: 'mqtthost',
+  t: 'topic',
 })
 .default({
   h: 'localhost',
   p: 4025,
   s: 'user',
   c: '1234',
-  m: 'localhost'
+  m: 'localhost',
+  t: 'envisalink',
 })
 .help('q')
 .alias('q', 'help')
@@ -38,49 +41,56 @@ const argv = yargs(process.argv.slice(2))
 
 
 import {
-  cleanStream,
-  envisalink$,
+  createCommandStream,
   handleCmdKeypadLEDState,
   handleCmdLogin,
   handleCmdPartitionState,
   handleCmdReaction,
   handleCmdSystemError,
   handleCmdTimeBroadcast,
+  handleCmdTrouble,
   handleCmdZoneState,
   handleCmdZoneTimerDump,
-  repeatOnComplete,
-  retryOnError,
-} from './index';
+} from './envisalink';
 
 
-const onEnvisaLinkReady = () => {
-  to.next([ApplicationCommand.DumpZoneTimers,'']);
-  to.next([ApplicationCommand.StatusReport,'']);
-}
-
-const port:number = argv.p;
-const to = new Subject<[string,string]>();
-const to$ = to.pipe(map(([cmd,data]) => `${cmd}${data}`));
-const con$ = envisalink$(argv.h, port, to$);
-const from$ = con$.pipe(
-  retryOnError(),
-  repeatOnComplete(),
-  cleanStream(),
-);
-const handler$ = from$.pipe(
-  handleCmdReaction(),
+const port: number = argv.p;
+const host: string = argv.h;
+const envisaLinkPass: string = argv.s;
+const commandStreamToEnvisalink = new Subject<[string,string]>();
+const commandStreamFromEnvisaLink$ = createCommandStream(commandStreamToEnvisalink, host, port);
+const $ = commandStreamFromEnvisaLink$.pipe(
+  handleCmdZoneState((zone,restored,situation,partition) => {
+    // TODO
+  }),
+  handleCmdPartitionState((partition,state) => {
+    // TODO
+  }),
+  handleCmdLogin(commandStreamToEnvisalink, envisaLinkPass, () => {
+    commandStreamToEnvisalink.next([ApplicationCommand.DumpZoneTimers,'']);
+    commandStreamToEnvisalink.next([ApplicationCommand.StatusReport,'']);
+  }),
+  handleCmdKeypadLEDState((led,state) => {
+    // TODO
+  }),
+  handleCmdReaction((ackcmd) => {
+    // TODO
+  }),
+  handleCmdTrouble((troubleLeds) => {
+    // TODO
+  }),
+  handleCmdTimeBroadcast((date) => {
+    // TODO
+  }),
+  handleCmdZoneTimerDump((timers) => {
+    // TODO
+  }),
   handleCmdSystemError(),
-  handleCmdLogin(to, argv.s, onEnvisaLinkReady),
-  handleCmdKeypadLEDState(),
-  handleCmdTimeBroadcast(),
-  handleCmdZoneState(),
-  handleCmdZoneTimerDump(),
-  handleCmdPartitionState(),
 );
 
 let sub:Subscription;
 if (argv._.includes('mqtt')) {
-  sub = handler$.subscribe((unhandled) => {
+  sub = $.subscribe((unhandled) => {
     console.log('Unhandled:',unhandled)
   })
 }
@@ -88,7 +98,7 @@ if (argv._.includes('mqtt')) {
 
 async function shutdown() {
   try {
-    to.complete();
+    commandStreamToEnvisalink.complete();
     if (sub && !sub.closed) sub.unsubscribe();
   } catch (er) {
     console.error(er);

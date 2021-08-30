@@ -1,5 +1,15 @@
 import { of } from "rxjs";
-import { handleCmdKeypadLEDState, handleCmdLogin, handleCmdPartitionState, handleCmdReaction, handleCmdSystemError, handleCmdTimeBroadcast, handleCmdTrouble, handleCmdZoneState, handleCmdZoneTimerDump } from "..";
+import {
+  handleCmdKeypadLEDState,
+  handleCmdLogin,
+  handleCmdPartitionState,
+  handleCmdReaction,
+  handleCmdSystemError,
+  handleCmdTimeBroadcast,
+  handleCmdTrouble,
+  handleCmdZoneState,
+  handleCmdZoneTimerDump,
+} from "../envisalink";
 
 type MSG = [string,string];
 
