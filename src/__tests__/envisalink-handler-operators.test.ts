@@ -192,15 +192,31 @@ test('Command: partition state changes', done => {
 });
 
 test('Command: trouble indicators', done => {
-  let tests: string[] = [], test: string;
-  const data = 0b01010000.toString(16); // Low battery and fault
-  of(['849', data] as MSG, ['840', data] as MSG, ['841', data] as MSG, ['000',''] as MSG).pipe(
-    handleCmdTrouble((states) => tests.push(states.map(on => on?'on':'.').join(''))),
+  let tests1: string[] = [];
+  let tests2: string[] = [];
+  let test: string;
+  of(
+    ['849', 0b01000000.toString(16)] as MSG, // ON
+    ['840', '1'] as MSG, // general on
+    ['849', 0b01010000.toString(16)] as MSG,
+    ['849', 0b00010000.toString(16)] as MSG,
+    ['841', '1'] as MSG, // general off (should result in both callback methods to be called)
+    ['000',''] as MSG
+  ).pipe(
+    handleCmdTrouble(
+      (led,on) => tests1.push(`led ${led} is ${on?'on':'off'}`),
+      (partition,on) => tests2.push(`partition ${partition} ${on?'in':'has no'} trouble`),
+    ),
   ).subscribe({
     next([cmd,data]) { test = `passthrough ${cmd} ${data}` },
     error(er) { done(er) },
     complete() {
-      expect(tests[0]).toBe('....on.on.');
+      expect(tests1[0]).toBe('led 6 is on');
+      expect(tests1[1]).toBe('led 4 is on');
+      expect(tests1[2]).toBe('led 6 is off');
+      expect(tests1[3]).toBe('led 4 is off');
+      expect(tests2[0]).toBe('partition 1 in trouble');
+      expect(tests2[1]).toBe('partition 1 has no trouble');
       expect(test).toBe('passthrough 000 ');
       done();
     },

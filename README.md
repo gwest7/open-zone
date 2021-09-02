@@ -1,6 +1,32 @@
 # open-zone
 
-Eyezon EnvisaLink bridge
+A EyezOn EnvisaLink-MQTT bridge. See the [npm](https://www.npmjs.com/package/@binaryme/open-zone) package.
+
+The [EnvisaLink™ EVL-4EZR](https://www.eyezon.com/evl4.php) interface module.
+
+An app that received commands from the EnvisaLink module and publishes states to and MQTT server.
+
+States are published to `tele/[topic]/...` and partition arming and panic instructions are read from `cmnd/[topic]/partition/[parition#]` and `cmnd/[topic]/panic`.
+
+# CLI
+
+```
+Usage: open-zone <command> [options]
+
+Commands:
+  mqtt      communicates EnvisaLink commands to MQTT
+  log       prints MQTT-destined traffic to stdout instead
+
+Options:
+  -h, --host <value>      the host of the EnvisaLink module (default: localhost)
+  -p, --port <value>      the TCP port number of the host to connect to (default: 4025)
+  -s, --pass <value>      the password to authenticate with after the TCP connection is established (default: user)
+  -c, --code <value>      the keypad code used to disarm the alarm (default: 1234)
+  -u --url <value>        the MQTT broker URL  (default: mqtt://localhost)
+  -t, --topic <value>     the topic to publish states to (default: envisalink)
+```
+
+Example `open-zone mqtt -h 192.168.0.3 -u mqtt://192.168.0.2`
 
 # Get started
 
@@ -38,25 +64,24 @@ commandStream$
   });
 ```
 
-# Purpose
-
-A bridge server that passes commands between an EnvisaLink TPI (third party interface) and an MQTT server.
+The CLI is of course a comprehensive example.
 
 # Roadmap
 
-* Convey zone and partition statuses
-* Convey trouble indicators
-* Convey keypad indicators
+* ~~Communicate zone and partition statuses~~ ✅
+* ~~Communicate trouble indicators~~ ✅
+* ~~Communicate keypad indicators~~ ✅
 * Act on partition command (arming and panic)
-* Export functionality that can be used by other developers
 * Provide options to pass MQTT username and password
 * Move sensative CLI args to environment variables
 * Optional CLI config file
 
 # Package dependencies
 
-`mqtt` for easy access to IoT state
+`mqtt` for easy interaction with an MQTT broker
+
 `yargs` to assist with CLI parameters.
+
 `rxjs` as events will steam thick and fast. Observables will be a useful building block.
 
 # EnvisaLink TPI documentation

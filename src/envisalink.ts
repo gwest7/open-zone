@@ -1,5 +1,5 @@
 import { connect } from 'net';
-import { Observable, retryWhen, tap, delay, repeatWhen, Subject, map, shareReplay } from 'rxjs';
+import { Observable, retryWhen, tap, delay, repeatWhen, Subject, map, shareReplay, switchMap, merge, interval, of } from 'rxjs';
 import { ApplicationCommand, DataLoginResponse, PartitionActivityType, SystemErrorCode, TPICommand, ZoneActivityType } from './constants';
 import { Boolean8X, getBitStates, getChecksum } from './utils';
 
@@ -16,7 +16,6 @@ export function connect$(
   port: number,
 ):Observable<string> {
   return new Observable(subscriber => {
-    console.log('connect',port,host)
     const con = connect(port, host, () => {
       con.on('data', (data:string) => subscriber.next(data));
       con.on('error', (er) => {
@@ -122,7 +121,11 @@ export function createCommandStream(
   port: number,
   logger?: (msg:string) => void,
 ) {
-  const to$ = inputCommandStream$.pipe(map(([cmd,data]) => `${cmd}${data}`));
+  const poll$ = interval(1000_000).pipe(map(i => ['000',''] as [string,string]));
+  const to$ = inputCommandStream$.pipe(
+    switchMap((msg) => merge(of(msg),poll$)),
+    map(([cmd,data]) => `${cmd}${data}`)
+  );
   const con$ = connect$(to$, host, port);
   return con$.pipe(
     retryOnError(9000,logger),
@@ -483,21 +486,41 @@ export function handleCmdLogin(
  * @returns Operator
  */
  export function handleCmdTrouble(
-  cb?: (troubleLeds:Boolean8X) => void,
+  onChange?: (led:number,on:boolean) => void,
+  onPartitionTroubleUpdate?: (partition:number,on:boolean) => void,
 ) {
   return ($:Observable<[string,string]>):Observable<[string,string]> => {
+    const partitions = new Map<number,boolean>();
+    const STATE = [false,false,false,false,false,false,false,false] as Boolean8X;
     return new Observable(subscriber => {
       return $.subscribe({
         next([cmd,data]){
           switch (cmd) {
             case TPICommand.VerboseTroubleStatus: {
-              cb?.(getBitStates(data));
+              const update = getBitStates(data);
+              for (let i=0; i<8; i++) if (update[i] !== STATE[i]) {
+                STATE[i] = update[i];
+                onChange?.(i,STATE[i]);
+              }
             } break;
             case TPICommand.TroubleLedOn: {
+              const key = +data.substring(0,1);
+              if (!partitions.has(key) || !partitions.get(key)) {
+                partitions.set(key, true);
+                onPartitionTroubleUpdate?.(key, true);
+              }
               // react on TPICommand.VerboseTroubleStatus
             } break;
             case TPICommand.TroubleLedOff: {
-              cb?.([false,false,false,false,false,false,false,false]);
+              for (let i=0; i<8; i++) if (STATE[i]) {
+                STATE[i] = false;
+                onChange?.(i,STATE[i]);
+              }
+              const key = +data.substring(0,1);
+              if (partitions.has(key) && partitions.get(key)) {
+                partitions.set(key, false);
+                onPartitionTroubleUpdate?.(key, false);
+              }
             } break;
             default:
               subscriber.next([cmd, data]); // pass the command on

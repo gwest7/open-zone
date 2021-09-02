@@ -1,6 +1,6 @@
 {
   "name": "@binaryme/open-zone",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "description": "Eyezon EnvisaLink bridge",
   "main": "lib/index.js",
   "bin": "lib/cli.js",
@@ -36,6 +36,7 @@
   "homepage": "https://github.com/gwest7/open-zone#readme",
   "devDependencies": {
     "@types/jest": "^27.0.1",
+    "@types/ws": "^7.4.7",
     "@types/yargs": "^16.0.4",
     "jest": "^27.0.6",
     "prettier": "^2.3.2",
