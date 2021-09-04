@@ -6,7 +6,11 @@ The [EnvisaLink™ EVL-4EZR](https://www.eyezon.com/evl4.php) interface module.
 
 An app that received commands from the EnvisaLink module and publishes states to and MQTT server.
 
-States are published to `tele/[topic]/...` and partition arming and panic instructions are read from `cmnd/[topic]/partition/[parition#]` and `cmnd/[topic]/panic`.
+States are published to `tele/[topic]/...`.
+
+Partition instructions are read from `cmnd/[topic]/partition/[parition#]`. The message payload can be either `arm`, `arm-stay` or `disarm`. The latter requires the `code` argument.
+
+Panic instructions are read from `cmnd/[topic]/panic`. The message payload can be either `fire`, `ambulance` or `police`.
 
 # CLI
 

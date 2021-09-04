@@ -1,6 +1,6 @@
 {
   "name": "@binaryme/open-zone",
-  "version": "0.4.0",
+  "version": "1.0.0",
   "description": "Eyezon EnvisaLink bridge",
   "main": "lib/index.js",
   "bin": "lib/cli.js",
