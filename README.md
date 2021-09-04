@@ -41,7 +41,7 @@ Example:
 ## MQTT messages
 
 Zone states are published to `tele/[topic]/zone/[zone#]` (and retained) as JSON with the following properties.
-```JSON
+```js
 {
   "id": 1, // the zone number
   "situation": "", // ZoneActivityType: one of four possible open states
@@ -53,7 +53,7 @@ Zone states are published to `tele/[topic]/zone/[zone#]` (and retained) as JSON 
 Partition states are published to `tele/[topic]/partition/[partition#]` (and retained) as a string of type `PartitionActivityType`. See TPI commands 650 - 659 in the documentation.
 
 Keypad LEDs are published to `tele/[topic]/indicator/[indicator#]` (and retained) as JSON with the following properties.
-```JSON
+```js
 {
   "id": 0, // LED index (0-7) as described in the documentation about TPI command 510.
   "state": 0, // 0=OFF, 1=ON, 2=FLASHING
@@ -61,7 +61,7 @@ Keypad LEDs are published to `tele/[topic]/indicator/[indicator#]` (and retained
 }
 ```
 Troubles are published to `tele/[topic]/trouble/[trouble#]` (and retained) as JSON with the following properties.
-```JSON
+```js
 {
   "id": 0, // trouble index (0-7) as described in the documentation about TPI command 849.
   "state": false, // true if the trouble is active and needs attention
