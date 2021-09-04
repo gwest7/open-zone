@@ -77,16 +77,21 @@ export function connectDebug(
 }
 
 /**
- * Creates an operator that (un)subscribes to topic interests and filters MQTT messages accordingly.
+ * Creates an operator that (un)subscribes to topic interests and filters MQTT messages
+ * accordingly.
  * @param topic MQTT topic interests
  * @param sub Subject to notify the start of topic intrests
  * @param unsub Subject to notify the end of topic interets
+ * @param onMessage If supplied then the operator will remove interests from the stream
+ * and pass them to the callback, if not supplied only interests will be passed down the
+ * stream effectively inverting the filter effect
  * @returns An operator
  */
 export function interest(
   topic: string | string[],
   sub: { next:(topics: string | string[]) => void },
   unsub: { next:(topics: string | string[]) => void },
+  onMessage?: (msg:IMsg) => void,
 ) {
   return ($:Observable<IMsg>):Observable<IMsg> => {
     return new Observable(subscriber => {
@@ -95,7 +100,11 @@ export function interest(
       const _ = $.subscribe({
         next(msg){
           const qualified = qualifiers.find(qualifier => topicQualifier(msg.topic, qualifier));
-          if (qualified) subscriber.next(msg);
+          if (onMessage) {
+            if (qualified) onMessage(msg); else subscriber.next(msg);
+          } else if (qualified) {
+            subscriber.next(msg);
+          }
         },
         error(er) { subscriber.error(er) },
         complete() { subscriber.complete() },

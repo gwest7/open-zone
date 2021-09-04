@@ -55,3 +55,6 @@ typings/
 
 # TS output
 /lib
+
+# user config for CLI
+.open-zone-config.json

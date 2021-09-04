@@ -1,8 +1,9 @@
 #!/user/bin/env node
 
+import { existsSync, readFileSync } from 'fs';
 import { map, Subject, Subscription } from 'rxjs';
 import * as yargs from 'yargs';
-import { ApplicationCommand, TPICommand, ZoneActivityType } from './constants';
+import { ApplicationCommand, PanicType, PartitionCommand, TPICommand, ZoneActivityType } from './constants';
 
 import {
   createCommandStream,
@@ -16,7 +17,7 @@ import {
   handleCmdZoneState,
   handleCmdZoneTimerDump,
 } from './envisalink';
-import { connect, connectDebug, IMsg, IPublishMsg } from './mqtt';
+import { connect, connectDebug, IMsg, interest, IPublishMsg } from './mqtt';
 
 
 const argv = yargs(process.argv.slice(2))
@@ -53,23 +54,68 @@ const argv = yargs(process.argv.slice(2))
 .demandCommand()
 .argv;
 
-
-
+if (existsSync('.open-zone-config.json')) {
+  try {
+    const config = JSON.parse(readFileSync('.open-zone-config.json').toString());
+    if (config.host) process.env.OZ_HOST = config.host;
+    if (config.port) process.env.OZ_PORT = config.port.toString();
+    if (config.pass) process.env.OZ_PASS= config.pass;
+    if (config.code) process.env.OZ_CODE = config.code.toString();
+    if (config.url) process.env.OZ_URL = config.url;
+    if (config.topic) process.env.OZ_TOPIC = config.topic;
+  } catch (error) {
+    console.log('Error reading config.', error);
+  }
+}
 
 // setup EnvisaLink connection
-const port: number = argv.p;
-const host: string = argv.h;
-const envisaLinkPass: string = argv.s;
+const port: number = +(process.env.OZ_PORT ?? '0') || argv.p;
+const host: string = process.env.OZ_HOST || argv.h;
+const envisaLinkPass: string = process.env.OZ_PASS || argv.s;
+console.log('envisaLinkPass',envisaLinkPass)
 const commandStreamToEnvisalink = new Subject<[string,string]>();
 const commandStreamFromEnvisaLink$ = createCommandStream(commandStreamToEnvisalink, host, port);
 
 // setup MQTT connection
-const brokerUrl: string = argv.u;
-const TOPIC: string = argv.t;
+const brokerUrl: string = process.env.OZ_URL || argv.u;
+const TOPIC: string = process.env.OZ_TOPIC || argv.t;
+const CODE: string = process.env.OZ_CODE || argv.c;
 const _sub = new Subject<string | string[]>();
 const _unsub = new Subject<string | string[]>();
 const _pub = new Subject<IPublishMsg>();
-const mqtt$ = connect(brokerUrl, _sub, _unsub, _pub);
+const mqtt$ = connect(brokerUrl, _sub, _unsub, _pub, {
+  clientId: 'open-zone', // this will retain topic subscriptions on observable resubscribes
+  will: { topic: `tele/${TOPIC}/LWT`, payload: 'Offline', qos:0, retain: true }
+}).pipe(
+  interest(`cmnd/${TOPIC}/partition/+`, _sub, _unsub, (msg) => {
+    const partition = +msg.topic.split('/').pop()!;
+    switch (msg.payload.toString()) {
+      case PartitionCommand.ArmStay:
+        commandStreamToEnvisalink.next([ApplicationCommand.PartitionArmControlStayArm,partition.toString()]);
+        break;
+      case PartitionCommand.Arm:
+        commandStreamToEnvisalink.next([ApplicationCommand.PartitionArmControl,partition.toString()]);
+        break;
+      case PartitionCommand.Disarm:
+        commandStreamToEnvisalink.next([ApplicationCommand.PartitionDisarmControl,`${partition}${CODE}`]);
+        break;
+    }
+  }),
+  interest(`cmnd/${TOPIC}/panic`, _sub, _unsub, (msg) => {
+    switch (msg.payload.toString()) {
+      case PanicType.Fire:
+        commandStreamToEnvisalink.next([ApplicationCommand.TriggerPanicAlarm, '1'])
+        break;
+      case PanicType.Ambulance:
+        commandStreamToEnvisalink.next([ApplicationCommand.TriggerPanicAlarm, '2'])
+        break;
+      case PanicType.Police:
+        commandStreamToEnvisalink.next([ApplicationCommand.TriggerPanicAlarm, '3'])
+        break;
+    }
+  }),
+);
+
 
 // setup stdout (fake MQTT)
 const fakeMsg$ = new Subject<IMsg>();
@@ -110,6 +156,8 @@ const $ = commandStreamFromEnvisaLink$.pipe(
   handleCmdLogin(commandStreamToEnvisalink, envisaLinkPass, () => {
     // 1. login complete -> now get the durations that zones have been restored
     commandStreamToEnvisalink.next([ApplicationCommand.DumpZoneTimers,'']);
+  }, () => {
+    console.log('Login failed...')
   }),
   handleCmdKeypadLEDState((led,state) => {
     _pub.next({
@@ -142,7 +190,7 @@ const $ = commandStreamFromEnvisaLink$.pipe(
         opts: { retain: true }
       })
     });
-    // 2. got timers -> now get request a report of all states
+    // 2. got timers -> now request a report of all states
     commandStreamToEnvisalink.next([ApplicationCommand.StatusReport,'']);
   }),
   handleCmdSystemError(),

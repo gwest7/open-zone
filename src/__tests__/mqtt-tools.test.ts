@@ -54,3 +54,29 @@ test('Interest operator', () => {
   expect(tests[2]).toBe('received: test 7');
   expect(tests[3]).toBe('unsubscribed 2 topics');
 })
+
+test('Interest operator with callback', () => {
+  const tests: string[] = [];
+  const topic = ['a/b/7','a/b/3'];
+  const msg$ = new Subject<IMsg>();
+  const $ = msg$.pipe(interest(
+    topic,
+    { next(topics){ tests.push(`subscribed to ${topics.length} topics`) } },
+    { next(topics){ tests.push(`unsubscribed ${topics.length} topics`) } },
+    ({payload}) => tests.push(`received: ${payload.toString()}`),
+  ));
+
+  expect(tests.length).toBe(0);
+  const sub = $.subscribe(({payload}) => tests.push(`ignored: ${payload.toString()}`));
+  expect(tests.length).toBe(1);
+  for (let i=2; i<5; i++) msg$.next({topic:`a/b/${i}`,payload:Buffer.from(`test ${i}`, "utf-8")} as any);
+  expect(tests.length).toBe(4);
+  sub.unsubscribe();
+  expect(tests.length).toBe(5);
+
+  expect(tests[0]).toBe('subscribed to 2 topics');
+  expect(tests[1]).toBe('ignored: test 2');
+  expect(tests[2]).toBe('received: test 3');
+  expect(tests[3]).toBe('ignored: test 4');
+  expect(tests[4]).toBe('unsubscribed 2 topics');
+})

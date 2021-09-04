@@ -26,7 +26,19 @@ Options:
   -t, --topic <value>     the topic to publish states to (default: envisalink)
 ```
 
-Example `open-zone mqtt -h 192.168.0.3 -u mqtt://192.168.0.2`
+Environment variables may also be used to set any of the options prepended with `OZ_`.
+
+Example: `OZ_PASS=user open-zone mqtt -h 192.168.0.3 -u mqtt://192.168.0.2`;
+
+A config file named `.open-zone-config.json` may also be used.
+
+Example:
+```JSON
+{
+  "pass": "user",
+  "code": 1234
+}
+```
 
 # Get started
 
@@ -71,10 +83,10 @@ The CLI is of course a comprehensive example.
 * ~~Communicate zone and partition statuses~~ ✅
 * ~~Communicate trouble indicators~~ ✅
 * ~~Communicate keypad indicators~~ ✅
-* Act on partition command (arming and panic)
-* Provide options to pass MQTT username and password
-* Move sensative CLI args to environment variables
-* Optional CLI config file
+* ~~Act on partition command (arming and panic)~~ ✅
+* ~~Move sensative CLI args to environment variables~~ ✅
+* ~~Optional CLI config file~~ ✅
+* Provide options to connect to MQTT using a username and password
 
 # Package dependencies
 
