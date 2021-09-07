@@ -16,12 +16,14 @@ Commands:
   log       prints MQTT-destined traffic to stdout instead
 
 Options:
-  -h, --host <value>    the host of the EnvisaLink module (default: localhost)
-  -p, --port <value>    the TCP port number of the host to connect to (default: 4025)
-  -s, --pass <value>    the password to authenticate with after the TCP connection is established (default: user)
-  -c, --code <value>    the keypad code used to disarm the alarm (default: 1234)
-  -u, --url <value>     the MQTT broker URL  (default: mqtt://localhost)
-  -t, --topic <value>   the topic to publish states to (default: envisalink)
+  -h, --host <value>    the host of the module (default: localhost)
+  -p, --port <value>    the module TCP port number (default: 4025)
+  -s, --pass <value>    the password to authenticate with after the TCP
+connection is established (default: user)
+  -c, --code <value>    the keypad code used to disarm (default: 1234)
+  -u, --url <value>     the MQTT broker URL (default: mqtt://localhost)
+  -t, --topic <value>   the MQTT topic for publishing states (default:
+open-zone)
 ```
 
 Environment variables may also be used to set any of the options prepended with `OZ_`.
@@ -43,31 +45,48 @@ Example:
 Zone states are published to `tele/[topic]/zone/[zone#]` (and retained) as JSON with the following properties.
 ```js
 {
-  "id": 1, // the zone number
-  "situation": "", // ZoneActivityType: one of four possible open states
-  "restored": true, // the zone is either open or restored. See TPI commands 601 - 610 in the documentation.
-  "since": 1630748000000, // epoch milli seconds since the last state change was published
-  "partition": "1" // a partition number
+  "id": 1, /* the zone number */
+  "situation": "normal", /* | `alarm` | `tamper` | `fault` */
+  "restored": true, /* the zone is either open or restored. See TPI
+  commands 601 - 610 in the documentation. */
+  "since": 1630748000000, /* epoch milli seconds since the last state
+  change was published */
+  "partition": "1" /* when the zone is part of an armed partition the
+  situations `alarm` and `tamper` will be acompanied by a partition
+  number */
 }
 ```
-Partition states are published to `tele/[topic]/partition/[partition#]` (and retained) as a string of type `PartitionActivityType`. See TPI commands 650 - 659 in the documentation.
-
+Partition states are published to `tele/[topic]/partition/[partition#]` (and retained) as JSON with the following properties.
+```js
+{
+  "id": 1, /* the partition number */
+  "state": "", /* `PartitionActivityType`See TPI commands 650 - 659 in the
+  documentation */
+  "since": 1630748000000 /* epoch milli seconds since the last state
+  change was published */
+}
+```
 Keypad LEDs are published to `tele/[topic]/indicator/[indicator#]` (and retained) as JSON with the following properties.
 ```js
 {
-  "id": 0, // LED index (0-7) as described in the documentation about TPI command 510.
-  "state": 0, // 0=OFF, 1=ON, 2=FLASHING
-  "since": 1630748000000, // epoch milli seconds since the last state change was published
+  "id": 0, /* LED index (0-7) as described in the documentation about TPI
+  command 510 */
+  "state": 0, /* 0=OFF, 1=ON, 2=FLASHING */
+  "since": 1630748000000, /* epoch milli seconds since the last state change
+  was published */
 }
 ```
 Troubles are published to `tele/[topic]/trouble/[trouble#]` (and retained) as JSON with the following properties.
 ```js
 {
-  "id": 0, // trouble index (0-7) as described in the documentation about TPI command 849.
-  "state": false, // true if the trouble is active and needs attention
-  "since": 1630748000000, // epoch milli seconds since the last state change was published
+  "id": 0, /* trouble index (0-7) as described in the documentation about
+  TPI command 849 */
+  "state": false, /* true if the trouble is active and needs attention */
+  "since": 1630748000000, /* epoch milli seconds since the last state
+  change was published */
 }
 ```
+Any error codes (TPI command 502) are published to `tele/[topic]/error` as `SystemErrorCode` (string).
 
 Partition instructions are read from `cmnd/[topic]/partition/[parition#]`. The message payload can be either `arm`, `arm-stay` or `disarm`. The latter requires the `code` argument.
 

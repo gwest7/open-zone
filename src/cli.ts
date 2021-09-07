@@ -3,7 +3,7 @@
 import { existsSync, readFileSync } from 'fs';
 import { map, Subject, Subscription } from 'rxjs';
 import * as yargs from 'yargs';
-import { ApplicationCommand, PanicType, PartitionCommand, TPICommand, ZoneActivityType } from './constants';
+import { ApplicationCommand, PanicType, PartitionCommand, systemErrorMsg, TPICommand, ZoneActivityType } from './constants';
 
 import {
   createCommandStream,
@@ -72,7 +72,6 @@ if (existsSync('.open-zone-config.json')) {
 const port: number = +(process.env.OZ_PORT ?? '0') || argv.p;
 const host: string = process.env.OZ_HOST || argv.h;
 const envisaLinkPass: string = process.env.OZ_PASS || argv.s;
-console.log('envisaLinkPass',envisaLinkPass)
 const commandStreamToEnvisalink = new Subject<[string,string]>();
 const commandStreamFromEnvisaLink$ = createCommandStream(commandStreamToEnvisalink, host, port);
 
@@ -86,7 +85,12 @@ const _pub = new Subject<IPublishMsg>();
 const mqtt$ = connect(brokerUrl, _sub, _unsub, _pub, {
   clientId: 'open-zone', // this will retain topic subscriptions on observable resubscribes
   will: { topic: `tele/${TOPIC}/LWT`, payload: 'Offline', qos:0, retain: true }
-}).pipe(
+},
+  (packet) => {
+    _pub.next({topic:`tele/${TOPIC}/LWT`, payload:'Online'});
+    _pub.next({topic:`tele/${TOPIC}/STATE`, payload:JSON.stringify({started:Date.now()})});
+  }
+).pipe(
   interest(`cmnd/${TOPIC}/partition/+`, _sub, _unsub, (msg) => {
     const partition = +msg.topic.split('/').pop()!;
     switch (msg.payload.toString()) {
@@ -147,9 +151,10 @@ const $ = commandStreamFromEnvisaLink$.pipe(
     }
   }),
   handleCmdPartitionState((partition,state) => {
+    const id = +partition;
     _pub.next({
-      topic: `tele/${TOPIC}/partition/${+partition}`,
-      payload: JSON.stringify({state}),
+      topic: `tele/${TOPIC}/partition/${id}`,
+      payload: JSON.stringify({ id, state, since: Date.now() }),
       opts: { retain: true }
     });
   }),
@@ -193,31 +198,26 @@ const $ = commandStreamFromEnvisaLink$.pipe(
     // 2. got timers -> now request a report of all states
     commandStreamToEnvisalink.next([ApplicationCommand.StatusReport,'']);
   }),
-  handleCmdSystemError(),
+  handleCmdSystemError((payload) => _pub.next({ topic: `tele/${TOPIC}/error`, payload })),
 );
-const timerEnvisalinkPoll = setInterval(() => {
-  commandStreamToEnvisalink.next(['000','']);
-}, 1000 * 60 * 10);
 
 
 let sub:Subscription;
-if (argv._.includes('mqtt')) {
+if (argv._.includes('mqtt')) {// MQTT BRIDGE
   sub = $.subscribe((unhandled) => {
     console.log('Unhandled:',unhandled);
   });
   sub.add(mqtt$.subscribe(({topic, payload, packet}) => {
     console.log('message', topic, payload.toString());
   }));
-} else if (argv._.includes('log')) {
+} else if (argv._.includes('log')) { // STDOUT LOGGER
   sub = $.subscribe((unhandled) => {
     console.log('Unhandled:',unhandled);
   });
   sub.add(mqttFake$.subscribe(({topic, payload, packet}) => {
     console.log('message', payload.toString());
   }));
-  
 }
-
 
 async function shutdown() {
   try {

@@ -3,7 +3,8 @@ import {
   IClientOptions,
   connect as _connect,
   IClientPublishOptions,
-  IPublishPacket
+  IPublishPacket,
+  IConnectPacket
 } from "mqtt";
 
 export interface IMsg {
@@ -34,15 +35,17 @@ export function connect(
   unsub: Observable<string | string[]>,
   pub: Observable<IPublishMsg>,
   options?: IClientOptions,
+  onConnect?: (packet?:IConnectPacket) => void,
+  onClose?: () => void,
 ) {
   return new Observable<IMsg>(subscriber => {
     const mqtt = _connect(url, options);
     mqtt.on('message', (topic,payload,packet) => subscriber.next({topic,payload,packet}));
-    mqtt.on('connect', (packet) => console.debug('connect', packet));
+    mqtt.on('connect', (packet) => onConnect?.(packet));
     // mqtt.on('error', (error) => subscriber.error(error));
     mqtt.on('error', (error) => console.warn(error));
     // mqtt.on('close', () => subscriber.complete());
-    mqtt.on('close', () => console.info('MQTT connection close'));
+    mqtt.on('close', () => onClose?.());
 
     const s = pub.subscribe(({topic,payload,opts}) => {
       opts ? mqtt.publish(topic,payload,opts) : mqtt.publish(topic,payload);
@@ -57,6 +60,16 @@ export function connect(
   });
 };
 
+/**
+ * Produces an observable that fakes a connection to a MQTT server. Instead it prints out
+ * all `subscribe`, `unsubscribe` and `publish` traffic usefull for debugging.
+ * @param url Not used
+ * @param sub Topic interests (subscribe) as a stream
+ * @param unsub Topic disinterests (unsubscribe) as a stream
+ * @param pub Message (to be published) as a stream
+ * @param fakeMsg$ A stream that could be used to fake incoming messages
+ * @returns A stream of MQTT messages fakes using the `fakeMsg$` parameter
+ */
 export function connectDebug(
   url: string,
   sub: Observable<string | string[]>,

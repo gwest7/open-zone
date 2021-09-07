@@ -155,24 +155,3 @@ export enum PartitionActivityType {
 	Alarm = 'alarm', // zone opened on armed partition
 	Busy = 'busy', // eg: inactive partition
 }
-
-export enum PartitionStateChange {
-	Disarm = 'disarm',
-	Arm = 'arm',
-	ArmStay = 'stay', // with entry delay always?
-	ArmZeroEnrtyDelay = 'arm-zed',
-}
-
-export interface IPartitionActivity {
-	id: string;
-	type: PartitionActivityType;
-}
-
-export const getDescription = (id:string|number) => {
-  const str = `${id}`;
-  switch (str) {
-		case "1": return "Inside";
-		case "2": return "Outside";
-		default: return `Partition ${str}`;
-	}
-}
