@@ -1,6 +1,6 @@
 # open-zone
 
-A EyezOn EnvisaLink-MQTT bridge. See the [npm](https://www.npmjs.com/package/@binaryme/open-zone) package.
+An EyezOn EnvisaLink-MQTT bridge. See the [npm](https://www.npmjs.com/package/@binaryme/open-zone) package.
 
 The [EnvisaLink™ EVL-4EZR](https://www.eyezon.com/evl4.php) interface module.
 

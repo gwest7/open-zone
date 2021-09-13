@@ -1,6 +1,6 @@
 {
   "name": "@binaryme/open-zone",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Eyezon EnvisaLink bridge",
   "main": "lib/index.js",
   "bin": "lib/cli.js",
@@ -26,7 +26,8 @@
   "keywords": [
     "EnvisaLink",
     "DCS",
-    "Honeywell"
+    "Honeywell",
+    "MQTT"
   ],
   "author": "gary@binaryme.co.za",
   "license": "MIT",

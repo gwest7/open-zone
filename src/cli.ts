@@ -87,8 +87,8 @@ const mqtt$ = connect(brokerUrl, _sub, _unsub, _pub, {
   will: { topic: `tele/${TOPIC}/LWT`, payload: 'Offline', qos:0, retain: true }
 },
   (packet) => {
-    _pub.next({topic:`tele/${TOPIC}/LWT`, payload:'Online'});
-    _pub.next({topic:`tele/${TOPIC}/STATE`, payload:JSON.stringify({started:Date.now()})});
+    _pub.next({topic:`tele/${TOPIC}/LWT`, payload:'Online', opts: {retain:true}});
+    _pub.next({topic:`tele/${TOPIC}/STATE`, payload:JSON.stringify({started:Date.now(), opts: {retain:true}})});
   }
 ).pipe(
   interest(`cmnd/${TOPIC}/partition/+`, _sub, _unsub, (msg) => {
