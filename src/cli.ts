@@ -32,6 +32,7 @@ const argv = yargs(process.argv.slice(2))
   c: 'Alarm system pin code',
   u: 'MQTT broker URL',
   t: 'MQTT topic',
+  l: 'Log level: 0=off, 1=info'
 })
 .alias({
   h: 'host',
@@ -40,6 +41,7 @@ const argv = yargs(process.argv.slice(2))
   c: 'code',
   u: 'url',
   t: 'topic',
+  l: 'log',
 })
 .default({
   h: 'localhost',
@@ -48,6 +50,7 @@ const argv = yargs(process.argv.slice(2))
   c: '1234',
   u: 'mqtt://localhost',
   t: 'envisalink',
+  l: 0,
 })
 .help('q')
 .alias('q', 'help')
@@ -63,6 +66,7 @@ if (existsSync('.open-zone-config.json')) {
     if (config.code) process.env.OZ_CODE = config.code.toString();
     if (config.url) process.env.OZ_URL = config.url;
     if (config.topic) process.env.OZ_TOPIC = config.topic;
+    if (config.log) process.env.OZ_LOG = config.log;
   } catch (error) {
     console.log('Error reading config.', error);
   }
@@ -73,7 +77,7 @@ const port: number = +(process.env.OZ_PORT ?? '0') || argv.p;
 const host: string = process.env.OZ_HOST || argv.h;
 const envisaLinkPass: string = process.env.OZ_PASS || argv.s;
 const commandStreamToEnvisalink = new Subject<[string,string]>();
-const commandStreamFromEnvisaLink$ = createCommandStream(commandStreamToEnvisalink, host, port);
+const commandStreamFromEnvisaLink$ = createCommandStream(commandStreamToEnvisalink, host, port, process.env.log? console.log : undefined);
 
 // setup MQTT connection
 const brokerUrl: string = process.env.OZ_URL || argv.u;
@@ -205,15 +209,15 @@ const $ = commandStreamFromEnvisaLink$.pipe(
 let sub:Subscription;
 if (argv._.includes('mqtt')) {// MQTT BRIDGE
   sub = $.subscribe((unhandled) => {
-    console.log('Unhandled:',unhandled);
-  });
+    console.log('Unhandled command:', unhandled);
+  }, er => console.error(er));
   sub.add(mqtt$.subscribe(({topic, payload, packet}) => {
     console.log('message', topic, payload.toString());
   }));
 } else if (argv._.includes('log')) { // STDOUT LOGGER
   sub = $.subscribe((unhandled) => {
-    console.log('Unhandled:',unhandled);
-  });
+    console.log('Unhandled command:', unhandled);
+  }, er => console.error(er));
   sub.add(mqttFake$.subscribe(({topic, payload, packet}) => {
     console.log('message', payload.toString());
   }));
