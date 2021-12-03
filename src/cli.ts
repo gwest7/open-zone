@@ -16,8 +16,8 @@ import {
   handleCmdTrouble,
   handleCmdZoneState,
   handleCmdZoneTimerDump,
-} from './envisalink';
-import { connect, connectDebug, IMsg, interest, IPublishMsg } from './mqtt';
+} from './index';
+import { connect, connectDebug, IMsg, interest, IPublishMsg } from '@binaryme/picky';
 
 
 const argv = yargs(process.argv.slice(2))

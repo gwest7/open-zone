@@ -9,7 +9,7 @@ import {
   handleCmdTrouble,
   handleCmdZoneState,
   handleCmdZoneTimerDump,
-} from "../envisalink";
+} from "../index";
 
 type MSG = [string,string];
 

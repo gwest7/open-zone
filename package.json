@@ -29,7 +29,7 @@
     "Honeywell",
     "MQTT"
   ],
-  "author": "gary@binaryme.co.za",
+  "author": "binaryme.co.za",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/gwest7/open-zone/issues"
@@ -47,6 +47,7 @@
     "typescript": "^4.3.5"
   },
   "dependencies": {
+    "@binaryme/picky": "^1.0.0",
     "mqtt": "^4.2.8",
     "rxjs": "^7.3.0",
     "yargs": "^16.2.0"
