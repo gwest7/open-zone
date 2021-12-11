@@ -24,6 +24,7 @@ connection is established (default: user)
   -u, --url <value>     the MQTT broker URL (default: mqtt://localhost)
   -t, --topic <value>   the MQTT topic for publishing states (default:
 open-zone)
+  -l, --log <value>     extra logging for socket connection issues
 ```
 
 Environment variables may also be used to set any of the options prepended with `OZ_`.
