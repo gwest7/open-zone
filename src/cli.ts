@@ -76,8 +76,9 @@ if (existsSync('.open-zone-config.json')) {
 const port: number = +(process.env.OZ_PORT ?? '0') || argv.p;
 const host: string = process.env.OZ_HOST || argv.h;
 const envisaLinkPass: string = process.env.OZ_PASS || argv.s;
+const logger = (...args:any[]) => process.env.log && console.log(new Date(), ...args);
 const commandStreamToEnvisalink = new Subject<[string,string]>();
-const commandStreamFromEnvisaLink$ = createCommandStream(commandStreamToEnvisalink, host, port, process.env.log? console.log : undefined);
+const commandStreamFromEnvisaLink$ = createCommandStream(commandStreamToEnvisalink, host, port, logger);
 
 // setup MQTT connection
 const brokerUrl: string = process.env.OZ_URL || argv.u;
@@ -208,16 +209,26 @@ const $ = commandStreamFromEnvisaLink$.pipe(
 
 let sub:Subscription;
 if (argv._.includes('mqtt')) {// MQTT BRIDGE
-  sub = $.subscribe((unhandled) => {
-    console.log('Unhandled command:', unhandled);
-  }, er => console.error(er));
+  sub = $.subscribe({
+    next(unhandled) {
+      console.log('Unhandled command:', unhandled);
+    },
+    error(er) {
+      console.error(er);
+    }
+  });
   sub.add(mqtt$.subscribe(({topic, payload, packet}) => {
     console.log('message', topic, payload.toString());
   }));
 } else if (argv._.includes('log')) { // STDOUT LOGGER
-  sub = $.subscribe((unhandled) => {
-    console.log('Unhandled command:', unhandled);
-  }, er => console.error(er));
+  sub = $.subscribe({
+    next(unhandled) {
+      console.log('Unhandled command:', unhandled);
+    },
+    error(er) {
+      console.error(er);
+    },
+  });
   sub.add(mqttFake$.subscribe(({topic, payload, packet}) => {
     console.log('message', payload.toString());
   }));
