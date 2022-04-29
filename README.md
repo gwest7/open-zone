@@ -4,7 +4,7 @@ An EyezOn EnvisaLink-MQTT bridge. See the [npm](https://www.npmjs.com/package/@b
 
 The [EnvisaLink™ EVL-4EZR](https://www.eyezon.com/evl4.php) interface module.
 
-An app that received commands from the EnvisaLink module and publishes states to and MQTT server.
+An app that received commands from the EnvisaLink module and publishes states to an MQTT broker.
 
 # CLI
 
@@ -24,6 +24,8 @@ connection is established (default: user)
   -u, --url <value>     the MQTT broker URL (default: mqtt://localhost)
   -t, --topic <value>   the MQTT topic for publishing states (default:
 open-zone)
+      --mqtt-username   an optional MQTT broker username
+      --mqtt-password   an optional MQTT broker password
   -l, --log <value>     extra logging for socket connection issues
 ```
 
@@ -36,8 +38,15 @@ A config file named `.open-zone-config.json` may also be used.
 Example:
 ```JSON
 {
+  "host": "192.168.0.10",
+  "port": "4025",
   "pass": "user",
-  "code": 1234
+  "code": "1234",
+  "url": "mqtts://myserver.com:8883",
+  "topic": "alarm",
+  "log": 1,
+  "mqttUsername": "open-zone",
+  "mqttPassword": "password123"
 }
 ```
 
@@ -133,13 +142,14 @@ The CLI is of course a comprehensive example.
 
 # Roadmap
 
-* ~~Communicate zone and partition statuses~~ ✅
-* ~~Communicate trouble indicators~~ ✅
-* ~~Communicate keypad indicators~~ ✅
-* ~~Act on partition command (arming and panic)~~ ✅
-* ~~Move sensative CLI args to environment variables~~ ✅
-* ~~Optional CLI config file~~ ✅
-* Provide options to connect to MQTT using a username and password
+- [x] Communicate zone and partition statuses
+- [x] Communicate trouble indicators
+- [x] Communicate keypad indicators
+- [x] Act on partition command (arming and panic)
+- [x] Move sensative CLI args to environment variables
+- [x] Optional CLI config file
+- [x] Provide options to connect to a MQTT broker using a username and password
+- [ ] Exist with error if connection to the broker fails
 
 # Package dependencies
 

@@ -3,7 +3,36 @@
 //   TYPES
 // ############################################################
 
+import { PartitionActivityType, ZoneActivityType } from "./constants";
+
 export type Boolean8X = [boolean,boolean,boolean,boolean,boolean,boolean,boolean,boolean];
+
+export type ZonePayload = {
+	id: number,
+  situation: ZoneActivityType,
+  restored: boolean,
+  since: number,
+  partition?: string,
+}
+
+export type PartitionPayload = {
+	id: number,
+	state: PartitionActivityType,
+	since: number,
+}
+
+export type IndicatorPayload = {
+	id: number,
+	state: 0 | 1 | 2,
+	since: number,
+}
+
+export type TroublePayload = {
+	id: number,
+	state: boolean,
+	since: number,
+}
+
 
 // ############################################################
 //   HELPERS

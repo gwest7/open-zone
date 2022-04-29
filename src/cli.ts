@@ -18,6 +18,7 @@ import {
   handleCmdZoneTimerDump,
 } from './index';
 import { connect, connectDebug, IMsg, interest, IPublishMsg } from '@binaryme/picky';
+import { IClientOptions } from 'mqtt';
 
 
 const argv = yargs(process.argv.slice(2))
@@ -32,7 +33,9 @@ const argv = yargs(process.argv.slice(2))
   c: 'Alarm system pin code',
   u: 'MQTT broker URL',
   t: 'MQTT topic',
-  l: 'Log level: 0=off, 1=info'
+  l: 'Log level: 0=off, 1=info',
+  'mqtt-username': 'MQTT username',
+  'mqtt-password': 'MQTT password',
 })
 .alias({
   h: 'host',
@@ -51,6 +54,8 @@ const argv = yargs(process.argv.slice(2))
   u: 'mqtt://localhost',
   t: 'envisalink',
   l: 0,
+  'mqtt-username': '',
+  'mqtt-password': '',
 })
 .help('q')
 .alias('q', 'help')
@@ -67,10 +72,13 @@ if (existsSync('.open-zone-config.json')) {
     if (config.url) process.env.OZ_URL = config.url;
     if (config.topic) process.env.OZ_TOPIC = config.topic;
     if (config.log) process.env.OZ_LOG = config.log;
+    if (config.mqttUsername) process.env.OZ_MQTT_USERNAME = config.mqttUsername;
+    if (config.mqttPassword) process.env.OZ_MQTT_PASSWORD = config.mqttPassword;
   } catch (error) {
     console.log('Error reading config.', error);
   }
 }
+
 
 // setup EnvisaLink connection
 const port: number = +(process.env.OZ_PORT ?? '0') || argv.p;
@@ -87,13 +95,18 @@ const CODE: string = process.env.OZ_CODE || argv.c;
 const _sub = new Subject<string | string[]>();
 const _unsub = new Subject<string | string[]>();
 const _pub = new Subject<IPublishMsg>();
-const mqtt$ = connect(brokerUrl, _sub, _unsub, _pub, {
+const opts:IClientOptions = {
   clientId: 'open-zone', // this will retain topic subscriptions on observable resubscribes
   will: { topic: `tele/${TOPIC}/LWT`, payload: 'Offline', qos:0, retain: true }
-},
+};
+if (process.env.OZ_MQTT_USERNAME || argv.mu) {
+  opts.username = process.env.OZ_MQTT_USERNAME || argv.mqttUsername as string;
+  opts.password = process.env.OZ_MQTT_PASSWORD || argv.mqttPassword as string;
+}
+const mqtt$ = connect(brokerUrl, _sub, _unsub, _pub, opts,
   (packet) => {
     _pub.next({topic:`tele/${TOPIC}/LWT`, payload:'Online', opts: {retain:true}});
-    _pub.next({topic:`tele/${TOPIC}/STATE`, payload:JSON.stringify({started:Date.now(), opts: {retain:true}})});
+    _pub.next({topic:`tele/${TOPIC}/STATE`, payload:JSON.stringify({started:Date.now()}), opts: {retain:true}});
   }
 ).pipe(
   interest(`cmnd/${TOPIC}/partition/+`, _sub, _unsub, (msg) => {
@@ -139,6 +152,7 @@ const zoneTimers:Map<number,{
   since: number,
   partition?: string,
 }> = new Map();
+
 const $ = commandStreamFromEnvisaLink$.pipe(
   handleCmdZoneState((zone,restored,situation,partition) => {
     const key = +zone;
