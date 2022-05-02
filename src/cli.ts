@@ -1,7 +1,7 @@
 #!/user/bin/env node
 
 import { existsSync, readFileSync } from 'fs';
-import { map, Subject, Subscription } from 'rxjs';
+import { map, repeat, retry, Subject, Subscription, tap, timer } from 'rxjs';
 import * as yargs from 'yargs';
 import { ApplicationCommand, PanicType, PartitionCommand, systemErrorMsg, TPICommand, ZoneActivityType } from './constants';
 
@@ -17,7 +17,7 @@ import {
   handleCmdZoneState,
   handleCmdZoneTimerDump,
 } from './index';
-import { connect, connectDebug, IMsg, interest, IPublishMsg } from '@binaryme/picky';
+import { createMessageStream, IMsg, interest, IPublishMsg, ISub, IUnsub, createMessageStreamDebug } from '@binaryme/picky';
 import { IClientOptions } from 'mqtt';
 
 
@@ -92,8 +92,8 @@ const commandStreamFromEnvisaLink$ = createCommandStream(commandStreamToEnvisali
 const brokerUrl: string = process.env.OZ_URL || argv.u;
 const TOPIC: string = process.env.OZ_TOPIC || argv.t;
 const CODE: string = process.env.OZ_CODE || argv.c;
-const _sub = new Subject<string | string[]>();
-const _unsub = new Subject<string | string[]>();
+const _sub = new Subject<ISub>();
+const _unsub = new Subject<IUnsub>();
 const _pub = new Subject<IPublishMsg>();
 const opts:IClientOptions = {
   clientId: 'open-zone', // this will retain topic subscriptions on observable resubscribes
@@ -103,12 +103,32 @@ if (process.env.OZ_MQTT_USERNAME || argv.mu) {
   opts.username = process.env.OZ_MQTT_USERNAME || argv.mqttUsername as string;
   opts.password = process.env.OZ_MQTT_PASSWORD || argv.mqttPassword as string;
 }
-const mqtt$ = connect(brokerUrl, _sub, _unsub, _pub, opts,
+const mqtt$ = createMessageStream(brokerUrl, _sub, _unsub, _pub, opts,
   (packet) => {
     _pub.next({topic:`tele/${TOPIC}/LWT`, payload:'Online', opts: {retain:true}});
     _pub.next({topic:`tele/${TOPIC}/STATE`, payload:JSON.stringify({started:Date.now()}), opts: {retain:true}});
   }
 ).pipe(
+  retry({
+    delay(error, retryCount){
+      logger(error);
+      const t = (retryCount + 2) * 2000;
+      logger?.(`MQTT connection error. Reconnecting in ${t}.`);
+      return timer(t).pipe(tap({
+        next(){ logger?.('MQTT reconnecting...'); }
+      }));
+    },
+    resetOnSuccess: true
+  }),
+  repeat({
+    delay(count){
+      const t = (count + 2) * 5000;
+      logger?.(`MQTT connection closed. Reconnecting in ${t}.`);
+      return timer(t).pipe(tap({
+        next(){ logger?.('MQTT reconnecting...'); }
+      }));
+    },
+  }),
   interest(`cmnd/${TOPIC}/partition/+`, _sub, _unsub, (msg) => {
     const partition = +msg.topic.split('/').pop()!;
     switch (msg.payload.toString()) {
@@ -141,7 +161,7 @@ const mqtt$ = connect(brokerUrl, _sub, _unsub, _pub, opts,
 
 // setup stdout (fake MQTT)
 const fakeMsg$ = new Subject<IMsg>();
-const mqttFake$ = connectDebug(brokerUrl, _sub, _unsub, _pub, fakeMsg$);
+const mqttFake$ = createMessageStreamDebug(brokerUrl, _sub, _unsub, _pub, fakeMsg$);
 
 
 // setup bridge
@@ -231,8 +251,9 @@ if (argv._.includes('mqtt')) {// MQTT BRIDGE
       console.error(er);
     }
   });
-  sub.add(mqtt$.subscribe(({topic, payload, packet}) => {
-    console.log('message', topic, payload.toString());
+  sub.add(mqtt$.subscribe({
+    next({topic, payload, packet}){ console.log('message', topic, payload.toString()); },
+    error(error){ console.warn('MQTT Stream error.', error); },
   }));
 } else if (argv._.includes('log')) { // STDOUT LOGGER
   sub = $.subscribe({

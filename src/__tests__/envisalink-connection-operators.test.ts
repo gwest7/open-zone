@@ -1,44 +1,7 @@
 import { EMPTY, of, switchMap, throwError } from 'rxjs';
 import {
-  repeatOnComplete,
-  retryOnError,
   cleanStream,
 } from '../index';
-
-test('Retry on error pipe', done => {
-  let failedFirst = false;
-  of(true).pipe(
-    switchMap((b) => {
-      if (failedFirst) return of('success');
-      failedFirst = true;
-      return throwError(() => new Error('Simulated fail.'))
-    }),
-    retryOnError(100),
-  ).subscribe({
-    next(s) { expect(s).toBe('success') },
-    error(er) { done(er) },
-    complete() { done() },
-  })
-});
-
-test('Repeat on completion pipe', done => {
-  let completeFirst = false;
-  const sub = of(true).pipe(
-    switchMap((b) => {
-      if (completeFirst) return of('success');
-      completeFirst = true;
-      return EMPTY;
-    }),
-    repeatOnComplete(100),
-  ).subscribe({
-    next(s) {
-      expect(s).toBe('success');
-      sub.unsubscribe();
-      done();
-    },
-    error(er) { done(er) },
-  })
-});
 
 test('Clean stream pipe: splitting', done => {
   of('6543D2\r\n').pipe(

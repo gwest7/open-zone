@@ -36,7 +36,7 @@ Example: `OZ_PASS=user open-zone mqtt -h 192.168.0.3 -u mqtt://192.168.0.2`;
 A config file named `.open-zone-config.json` may also be used.
 
 Example:
-```JSON
+```js
 {
   "host": "192.168.0.10",
   "port": "4025",
@@ -46,7 +46,7 @@ Example:
   "topic": "alarm",
   "log": 1,
   "mqttUsername": "open-zone",
-  "mqttPassword": "password123"
+  "mqttPassword": "password123",
 }
 ```
 
@@ -149,7 +149,7 @@ The CLI is of course a comprehensive example.
 - [x] Move sensative CLI args to environment variables
 - [x] Optional CLI config file
 - [x] Provide options to connect to a MQTT broker using a username and password
-- [ ] Exist with error if connection to the broker fails
+- [x] Improve connection failure handling
 
 # Package dependencies
 

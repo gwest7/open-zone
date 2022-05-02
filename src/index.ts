@@ -1,5 +1,5 @@
 import { connect } from 'net';
-import { Observable, retryWhen, tap, delay, repeatWhen, Subject, map, shareReplay, switchMap, merge, interval, of } from 'rxjs';
+import { Observable, tap, map, shareReplay, switchMap, merge, interval, of, retry, timer, repeat } from 'rxjs';
 import { ApplicationCommand, DataLoginResponse, PartitionActivityType, SystemErrorCode, TPICommand, ZoneActivityType } from './constants';
 import { Boolean8X, getBitStates, getChecksum } from './utils';
 
@@ -44,32 +44,6 @@ export function connect$(
     }
   });
 };
-
-/**
- * Create an operator to reconnect a failed EnvisaLink connection
- * @param delayMs Retry delay after failure
- * @returns Operator
- */
-export function retryOnError(delayMs = 9000, logger?:(msg:string)=>void) {
-  return retryWhen<string>(er$ => er$.pipe(
-    tap((er) => logger?.("Envisalink socket error. Waiting 9s...")),
-    delay(delayMs),
-    tap(() => logger?.("Reconnecting Envisalink socket after error..."))
-  ))
-}
-
-/**
- * Create an operator to reconnect a closed EnvisaLink connection
- * @param delayMs Retry delay after closure
- * @returns Operator
- */
-export function repeatOnComplete(delayMs = 6000, logger?:(msg:string)=>void) {
-  return repeatWhen<string>($ => $.pipe(
-    tap(() => logger?.("Envisalink socket closed. Waiting 6s...")),
-    delay(delayMs),
-    tap(() => logger?.("Reconnecting Envisalink socket after close..."))
-  ))
-}
 
 /**
  * The string payloads can sometimes contain more than on command. This operator splits
@@ -128,8 +102,26 @@ export function createCommandStream(
   );
   const con$ = connect$(to$, host, port);
   return con$.pipe(
-    retryOnError(9000,logger),
-    repeatOnComplete(6000,logger),
+    retry({
+      delay(error, retryCount){
+        logger?.(error);
+        const t = (retryCount + 2) * 2000;
+        logger?.(`Envisalink connection error. Reconnecting in ${t}.`);
+        return timer(t).pipe(tap({
+          next(){ logger?.('Envisalink reconnecting...'); }
+        }));
+      },
+      resetOnSuccess: true,
+    }),
+    repeat({
+      delay(count){
+        const t = (count + 2) * 5000;
+        logger?.(`Envisalink connection closed. Reconnecting in ${t}.`);
+        return timer(t).pipe(tap({
+          next(){ logger?.('Envisalink reconnecting...'); }
+        }));
+      },
+    }),
     cleanStream((cmd,er) => logger?.(`[${cmd}] ${er}`)),
     shareReplay(), // crutial to avoid multiple connections
   );
