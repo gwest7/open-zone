@@ -87,12 +87,12 @@ test('Command: keypad LED states', done => {
 test('Command: time broadcast', done => {
   let test1: string, test2: string;
   of(['550', '1645022020'] as MSG, ['000',''] as MSG).pipe(
-    handleCmdTimeBroadcast((date) => test1 = date.toISOString()),
+    handleCmdTimeBroadcast((d) => test1 = `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()} ${d.getHours()}:${d.getMinutes()}`),
   ).subscribe({
     next([cmd,data]) { test2 = `passthrough ${cmd} ${data}` },
     error(er) { done(er) },
     complete() {
-      expect(test1).toBe('2020-02-20T14:45:00.000Z');
+      expect(test1).toBe('2020-2-20 16:45');
       expect(test2).toBe('passthrough 000 ');
       done();
     },
