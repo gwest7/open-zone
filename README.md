@@ -23,7 +23,7 @@ connection is established (default: user)
   -c, --code <value>    the keypad code used to disarm (default: 1234)
   -u, --url <value>     the MQTT broker URL (default: mqtt://localhost)
   -t, --topic <value>   the MQTT topic for publishing states (default:
-open-zone)
+tele/envisalink)
       --mqtt-username   an optional MQTT broker username
       --mqtt-password   an optional MQTT broker password
   -l, --log <value>     extra logging for socket connection issues
@@ -52,7 +52,7 @@ Example:
 
 ## MQTT messages
 
-Zone states are published to `tele/[topic]/zone/[zone#]` (and retained) as JSON with the following properties.
+Zone states are published to `[topic]/zone/[zone#]` (and retained) as JSON with the following properties.
 ```js
 {
   "id": 1, /* the zone number */
@@ -66,7 +66,7 @@ Zone states are published to `tele/[topic]/zone/[zone#]` (and retained) as JSON 
   number */
 }
 ```
-Partition states are published to `tele/[topic]/partition/[partition#]` (and retained) as JSON with the following properties.
+Partition states are published to `[topic]/partition/[partition#]` (and retained) as JSON with the following properties.
 ```js
 {
   "id": 1, /* the partition number */
@@ -76,7 +76,7 @@ Partition states are published to `tele/[topic]/partition/[partition#]` (and ret
   change was published */
 }
 ```
-Keypad LEDs are published to `tele/[topic]/indicator/[indicator#]` (and retained) as JSON with the following properties.
+Keypad LEDs are published to `[topic]/indicator/[indicator#]` (and retained) as JSON with the following properties.
 ```js
 {
   "id": 0, /* LED index (0-7) as described in the documentation about TPI
@@ -86,7 +86,7 @@ Keypad LEDs are published to `tele/[topic]/indicator/[indicator#]` (and retained
   was published */
 }
 ```
-Troubles are published to `tele/[topic]/trouble/[trouble#]` (and retained) as JSON with the following properties.
+Troubles are published to `[topic]/trouble/[trouble#]` (and retained) as JSON with the following properties.
 ```js
 {
   "id": 0, /* trouble index (0-7) as described in the documentation about
@@ -96,7 +96,7 @@ Troubles are published to `tele/[topic]/trouble/[trouble#]` (and retained) as JS
   change was published */
 }
 ```
-Any error codes (TPI command 502) are published to `tele/[topic]/error` as `SystemErrorCode` (string).
+Any error codes (TPI command 502) are published to `[topic]/error` as `SystemErrorCode` (string).
 
 Partition instructions are read from `cmnd/[topic]/partition/[parition#]`. The message payload can be either `arm`, `arm-stay` or `disarm`. The latter requires the `code` argument.
 

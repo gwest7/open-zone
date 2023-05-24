@@ -52,7 +52,7 @@ const argv = yargs(process.argv.slice(2))
   s: 'user',
   c: '1234',
   u: 'mqtt://localhost',
-  t: 'envisalink',
+  t: 'tele/envisalink',
   l: 0,
   'mqtt-username': '',
   'mqtt-password': '',
@@ -97,7 +97,7 @@ const _unsub = new Subject<IUnsub>();
 const _pub = new Subject<IPublishMsg>();
 const opts:IClientOptions = {
   clientId: 'open-zone', // this will retain topic subscriptions on observable resubscribes
-  will: { topic: `tele/${TOPIC}/LWT`, payload: 'Offline', qos:0, retain: true }
+  will: { topic: `${TOPIC}/LWT`, payload: 'Offline', qos:0, retain: true }
 };
 if (process.env.OZ_MQTT_USERNAME || argv.mu) {
   opts.username = process.env.OZ_MQTT_USERNAME || argv.mqttUsername as string;
@@ -105,8 +105,8 @@ if (process.env.OZ_MQTT_USERNAME || argv.mu) {
 }
 const mqtt$ = createMessageStream(brokerUrl, _sub, _unsub, _pub, opts,
   (packet) => {
-    _pub.next({topic:`tele/${TOPIC}/LWT`, payload:'Online', opts: {retain:true}});
-    _pub.next({topic:`tele/${TOPIC}/STATE`, payload:JSON.stringify({started:Date.now()}), opts: {retain:true}});
+    _pub.next({topic:`${TOPIC}/LWT`, payload:'Online', opts: {retain:true}});
+    _pub.next({topic:`${TOPIC}/STATE`, payload:JSON.stringify({started:Date.now()}), opts: {retain:true}});
   }
 ).pipe(
   retry({
@@ -183,7 +183,7 @@ const $ = commandStreamFromEnvisaLink$.pipe(
       state.since = Date.now();
       if (partition) state.partition = partition; else delete state.partition;
       _pub.next({
-        topic: `tele/${TOPIC}/zone/${key}`,
+        topic: `${TOPIC}/zone/${key}`,
         payload: JSON.stringify(state),
         opts: { retain: true },
       })
@@ -192,7 +192,7 @@ const $ = commandStreamFromEnvisaLink$.pipe(
   handleCmdPartitionState((partition,state) => {
     const id = +partition;
     _pub.next({
-      topic: `tele/${TOPIC}/partition/${id}`,
+      topic: `${TOPIC}/partition/${id}`,
       payload: JSON.stringify({ id, state, since: Date.now() }),
       opts: { retain: true }
     });
@@ -205,7 +205,7 @@ const $ = commandStreamFromEnvisaLink$.pipe(
   }),
   handleCmdKeypadLEDState((led,state) => {
     _pub.next({
-      topic: `tele/${TOPIC}/indicator/${led}`,
+      topic: `${TOPIC}/indicator/${led}`,
       payload: JSON.stringify({ id: led, state, since: Date.now()}),
       opts: { retain: true }
     });
@@ -215,7 +215,7 @@ const $ = commandStreamFromEnvisaLink$.pipe(
   }),
   handleCmdTrouble((led,state) => {
     _pub.next({
-      topic: `tele/${TOPIC}/trouble/${led}`,
+      topic: `${TOPIC}/trouble/${led}`,
       payload: JSON.stringify({ id: led, state, since: Date.now()}),
       opts: { retain: true }
     });
@@ -229,7 +229,7 @@ const $ = commandStreamFromEnvisaLink$.pipe(
       const state = { id: zone, situation: ZoneActivityType.Normal, restored, since };
       zoneTimers.set(zone, state);
       _pub.next({
-        topic: `tele/${TOPIC}/zone/${zone}`,
+        topic: `${TOPIC}/zone/${zone}`,
         payload: JSON.stringify(state),
         opts: { retain: true }
       })
@@ -237,7 +237,7 @@ const $ = commandStreamFromEnvisaLink$.pipe(
     // 2. got timers -> now request a report of all states
     commandStreamToEnvisalink.next([ApplicationCommand.StatusReport,'']);
   }),
-  handleCmdSystemError((payload) => _pub.next({ topic: `tele/${TOPIC}/error`, payload })),
+  handleCmdSystemError((payload) => _pub.next({ topic: `${TOPIC}/error`, payload })),
 );
 
 

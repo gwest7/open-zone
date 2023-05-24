@@ -1,6 +1,6 @@
 {
-  "name": "@binaryme/open-zone",
-  "version": "1.4.0",
+  "name": "@gwest7/open-zone",
+  "version": "1.4.1",
   "description": "Eyezon EnvisaLink bridge",
   "main": "lib/index.js",
   "bin": "lib/cli.js",
@@ -13,7 +13,6 @@
     "build": "tsc",
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
     "lint": "tslint -p tsconfig.json",
-    "prepare": "npm run build",
     "prepublishOnly": "npm test && npm run lint",
     "preversion": "npm run lint",
     "version": "npm run format && git add -A src",
